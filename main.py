@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import threading
 from cl_script import execute 
+from cache_manager import save_to_cache, load_from_cache
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -11,16 +12,15 @@ class HomeFrame(ctk.CTkFrame):
         self.grid_columnconfigure((1, 2, 3, 5), weight=1)
         self.grid_rowconfigure(5, weight=1) 
         self.setup_ui()
+        self.load_data()
 
     def setup_ui(self):
-
         ctk.CTkLabel(self, text="First server:").grid(row=0, column=0, padx=10, pady=10)
         self.input_username = ctk.CTkEntry(self, placeholder_text="User")
         self.input_username.grid(row=0, column=1, padx=5, sticky="ew")
         self.input_ip = ctk.CTkEntry(self, placeholder_text="IP Address")
         self.input_ip.grid(row=0, column=2, padx=5, sticky="ew")
         self.input_port = ctk.CTkEntry(self, placeholder_text="22")
-        self.input_port.insert(0, "22")
         self.input_port.grid(row=0, column=3, padx=5, sticky="ew")
         self.input_password = ctk.CTkEntry(self, placeholder_text="Password", show="*")
         self.input_password.grid(row=0, column=5, padx=5, sticky="ew")
@@ -45,16 +45,39 @@ class HomeFrame(ctk.CTkFrame):
         self.console_box = ctk.CTkTextbox(self.console_container, state="disabled", fg_color="#161616", text_color="#00ff00")
         self.console_box.grid(row=1, column=0, sticky="nsew")
 
+    def load_data(self):
+        cache = load_from_cache()
+        if cache:
+            self.input_username.insert(0, cache.get("user", ""))
+            self.input_ip.insert(0, cache.get("ip", ""))
+            self.input_port.insert(0, cache.get("port", "22"))
+            self.output_server.insert(0, cache.get("out_ip", ""))
+            self.output_port.insert(0, cache.get("out_port", ""))
+        else:
+            self.input_port.insert(0, "22")
+
     def start_backup_task(self):
-        h, u, p, po = self.input_ip.get(), self.input_username.get(), self.input_password.get(), self.input_port.get()
+        h = self.input_ip.get()
+        u = self.input_username.get()
+        p = self.input_password.get()
+        po = self.input_port.get()
+        o_h = self.output_server.get()
+        o_po = self.output_port.get()
 
         if not h or not u or not p:
             self.write_to_console("⚠️ System: Missing fields.")
             return
 
+        save_to_cache({
+            "user": u,
+            "ip": h,
+            "port": po,
+            "out_ip": o_h,
+            "out_port": o_po
+        })
+
         self.progress_bar.grid(row=0, column=0, pady=(0, 10), sticky="ew")
         self.progress_bar.set(0)
-        
         self.begin_btn.configure(state="disabled")
         
         thread = threading.Thread(
@@ -91,10 +114,8 @@ class SettingsFrame(ctk.CTkFrame):
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         self.title("ServerApp Pro")
         self.geometry("1100x700")
-
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -122,7 +143,6 @@ class App(ctk.CTk):
         self.show_page("home")
 
     def show_page(self, name):
-        """Aduce pagina cerută în prim-plan fără a distruge celelalte frame-uri"""
         page = self.pages[name]
         page.tkraise()
 

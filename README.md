@@ -1,0 +1,4 @@
+<h1>My personal App!
+Working with Wordpress servers and migrations, made me realise there is a more common method to transfer a site from one platform to another - creating a link between the servers. Migrations sometimes take too long or they fail, plugins cost and copying a site to local PC is a pain in the ass. Servers have strong hardware components and can transfer files with a speed we can't obtain usually. <br/>
+My app is the perfect solution: I create an archive of the site, working on all hosting platforms. From there, I just fetch the archive onto the new server and make sure it is up. Most important thing is to have the domain pointing to the new IP adress to have the site on!<br/>
+Another thing I want to implement is an automated service to flush the cache and to check the "vitals" of a site.
