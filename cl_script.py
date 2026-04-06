@@ -2,29 +2,36 @@ import paramiko
 import socket
 import time
 
+
+# saving the folder's size
 def get_folder_size_bytes(client, folder):
-    """Returnează dimensiunea folderului în Bytes."""
     stdin, stdout, stderr = client.exec_command(f"du -sb {folder} | cut -f1")
     res = stdout.read().decode().strip()
     return int(res) if res.isdigit() else 0
 
+# taking the archive's size
 def get_file_size_bytes(client, path):
-    """Returnează dimensiunea actuală a arhivei în Bytes."""
     stdin, stdout, stderr = client.exec_command(f"du -b {path} | cut -f1")
     res = stdout.read().decode().strip()
     return int(res) if res.isdigit() else 0
 
+# different hosting platforms have different paths to the main folder
+# this function is finding the path to the main folder
 def get_folder_name(client):
     command = "find . -type d -name 'wp-content' -exec dirname {} \; | head -n 1"
     stdin, stdout, stderr = client.exec_command(command)
     path = stdout.read().decode('utf-8').strip()
     return path if path else "."
 
+# all commands for transfering are here
+# console_log is a function used to keep the user in touch with the progress
 def execute(host, user, password, port, update_progress, console_log):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     try:
+        # trying to connect to the server, take the path => start the archiving
+
         console_log(f"Connecting to {host}...")
         client.connect(host, username=user, password=password, port=int(port), timeout=10)
         
@@ -42,6 +49,7 @@ def execute(host, user, password, port, update_progress, console_log):
         full_command = f"tar -czf {archive_path} -C {folder} --exclude=archive.tar.gz ."
         client.exec_command(full_command)
 
+        # progress bar
         while True:
             current_bytes = get_file_size_bytes(client, archive_path)
             

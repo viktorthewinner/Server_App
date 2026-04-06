@@ -6,6 +6,9 @@ from cache_manager import save_to_cache, load_from_cache
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+# all frames are declared as classes => mantaining all the variables in memory when we go from one frame to another
+# class App is the full class
+
 class HomeFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -14,55 +17,85 @@ class HomeFrame(ctk.CTkFrame):
         self.setup_ui()
         self.load_data()
 
+    # the main container
     def setup_ui(self):
+        # boxes to fill the info for the first server
         ctk.CTkLabel(self, text="First server:").grid(row=0, column=0, padx=10, pady=10)
+
         self.input_username = ctk.CTkEntry(self, placeholder_text="User")
         self.input_username.grid(row=0, column=1, padx=5, sticky="ew")
+
         self.input_ip = ctk.CTkEntry(self, placeholder_text="IP Address")
         self.input_ip.grid(row=0, column=2, padx=5, sticky="ew")
+
         self.input_port = ctk.CTkEntry(self, placeholder_text="22")
         self.input_port.grid(row=0, column=3, padx=5, sticky="ew")
+
         self.input_password = ctk.CTkEntry(self, placeholder_text="Password", show="*")
         self.input_password.grid(row=0, column=5, padx=5, sticky="ew")
 
-        ctk.CTkLabel(self, text="Second server:").grid(row=1, column=0, padx=10, pady=10)
-        self.output_server = ctk.CTkEntry(self, placeholder_text="Optional Output IP")
-        self.output_server.grid(row=1, column=1, padx=5, sticky="ew")
-        self.output_port = ctk.CTkEntry(self, placeholder_text="Port")
-        self.output_port.grid(row=1, column=2, padx=5, sticky="ew")
 
+        # boxes to fill the info for the second server
+        ctk.CTkLabel(self, text="Second server:").grid(row=1, column=0, padx=10, pady=10)
+
+        self.output_username = ctk.CTkEntry(self, placeholder_text="User")
+        self.output_username.grid(row=1, column=1, padx=5, sticky="ew")
+
+        self.output_ip = ctk.CTkEntry(self, placeholder_text="IP Address")
+        self.output_ip.grid(row=1, column=2, padx=5, sticky="ew")
+
+        self.output_port = ctk.CTkEntry(self, placeholder_text="22")
+        self.output_port.grid(row=1, column=3, padx=5, sticky="ew")
+
+        self.output_password = ctk.CTkEntry(self, placeholder_text="Password", show="*")
+        self.output_password.grid(row=1, column=5, padx=5, sticky="ew")
+
+
+        # button to start the process
         self.begin_btn = ctk.CTkButton(self, text="🚀 Begin Archive", command=self.start_backup_task)
         self.begin_btn.grid(row=3, column=0, columnspan=2, padx=20, pady=10, sticky="ew")
 
+        # console container
         self.console_container = ctk.CTkFrame(self, fg_color="transparent")
         self.console_container.grid(row=5, column=0, columnspan=10, padx=20, pady=(0, 20), sticky="nsew")
         self.console_container.grid_columnconfigure(0, weight=1)
         self.console_container.grid_rowconfigure(1, weight=1)
 
+        # progress bar
         self.progress_bar = ctk.CTkProgressBar(self.console_container, orientation="horizontal")
         self.progress_bar.set(0)
 
         self.console_box = ctk.CTkTextbox(self.console_container, state="disabled", fg_color="#161616", text_color="#00ff00")
         self.console_box.grid(row=1, column=0, sticky="nsew")
 
+
+    # if you switch classes, remember the old values
     def load_data(self):
         cache = load_from_cache()
         if cache:
             self.input_username.insert(0, cache.get("user", ""))
             self.input_ip.insert(0, cache.get("ip", ""))
             self.input_port.insert(0, cache.get("port", "22"))
-            self.output_server.insert(0, cache.get("out_ip", ""))
-            self.output_port.insert(0, cache.get("out_port", ""))
+            if cache.get("out_user", "")!= "":
+                self.output_username.insert(0, cache.get("out_user", ""))
+            if cache.get("out_ip", "")!= "":
+                self.output_ip.insert(0, cache.get("out_ip", ""))  
+            if cache.get("out_port", "")!= "":
+                self.output_port.insert(0, cache.get("out_port", ""))
         else:
             self.input_port.insert(0, "22")
+            self.output_port.insert(0, "22")
 
+    # start the process
     def start_backup_task(self):
         h = self.input_ip.get()
         u = self.input_username.get()
         p = self.input_password.get()
         po = self.input_port.get()
-        o_h = self.output_server.get()
+        o_h = self.output_ip.get()
+        o_u = self.output_username.get()
         o_po = self.output_port.get()
+        o_p = self.output_password.get()
 
         if not h or not u or not p:
             self.write_to_console("⚠️ System: Missing fields.")
@@ -72,6 +105,7 @@ class HomeFrame(ctk.CTkFrame):
             "user": u,
             "ip": h,
             "port": po,
+            "out_user": o_u,
             "out_ip": o_h,
             "out_port": o_po
         })
@@ -80,6 +114,7 @@ class HomeFrame(ctk.CTkFrame):
         self.progress_bar.set(0)
         self.begin_btn.configure(state="disabled")
         
+        # very important to take the process to a new thread => app will stay live, not frozen
         thread = threading.Thread(
             target=execute,
             args=(h, u, p, po, self.update_progress_ui, self.write_to_console),
@@ -90,6 +125,7 @@ class HomeFrame(ctk.CTkFrame):
     def update_progress_ui(self, float_value):
         self.after(0, lambda: self.progress_bar.set(float_value))
 
+    # writing in console
     def write_to_console(self, text):
         def _update():
             self.console_box.configure(state="normal")
