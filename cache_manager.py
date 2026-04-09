@@ -3,6 +3,10 @@ import os
 
 # this script is saving the last servers used => when restarting the app you have the last credentials already filled
 
+if not os.path.exists('servers_cache.json'):
+    with open('servers_cache.json', 'w') as f:
+        f.write('{}')
+
 CACHE_FILE = "servers_cache.json"
 
 def save_to_cache(data):
